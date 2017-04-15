@@ -1,6 +1,6 @@
-#include("MC_2D_XY.jl")
+include("MC_2D_XY.jl")
 include("timing-functions.jl")
-include("old_XY.jl")
+#include("old_XY.jl")
 include("plots.jl")
 
 T = linspace(0.5, 2.5,50)

@@ -1,5 +1,15 @@
 using PyPlot
 using JLD
+@everywhere function periodic_index(a::Int64, L::Int64)::Int64 #This impliments periodic boudnary conditions (PBC's)
+    if a == 0
+        return L
+    elseif a == L + 1
+        return 1
+    else
+      return a
+  end
+end
+
 
 @everywhere function random_config_XY(L::Int64)::Array{Float64,2} #generate a random (L,L) matrix of +/-1
     return 2.0*pi*rand(L,L)
