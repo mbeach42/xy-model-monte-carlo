@@ -1,7 +1,9 @@
-include("MC_2D_XY.jl")
-#include("old_XY.jl")
-#Compile
-iterate_over_temperatures_XY(linspace(0.6, 0.8, 5), 5, 5, 5)
+#include("MC_2D_XY.jl")
+
+#Compile one for speed
+#iterate_over_temperatures_XY(linspace(0.6, 0.8, 5), 5, 5, 5)
+#iterate_over_temperatures_XY(linspace(0.6, 0.8, 5), 5, 5, 15)
+
 
 
 function timeit(T, L, N)
@@ -19,3 +21,7 @@ function timeit(T, L, N)
   println("Max time: ", maximum(time))
   println("Min time: ", minimum(time))
 end
+
+timeit(20, 10, 100)
+
+#timeit(20, 10, 1000)
