@@ -1,4 +1,4 @@
-module MetropolisXYModel
+module MetropolisXYModelCartesian2
 
 export iterate_over_temperatures
 
@@ -20,21 +20,21 @@ end
     return 2.0*rand(L,L)
 end
 
- @fastmath function energy_single_flip(M::Array{Float64,2}, deltaTheta::Float64, i::Int64, j::Int64, L::Int64)#::Float64 #energy of configuration
-   E, Etrial = 0.0, 0.0
-   Etrial = - cospi(M[i,j]-M[i, periodic_index(j+1,L)]) - cospi(M[i,j]-M[i, periodic_index(j-1, L)]) - cospi(M[i,j]-M[periodic_index(i+1, L),j]) - cospi(M[i,j]-M[periodic_index(i-1, L),j])
-   M[i,j] -= deltaTheta
-   E = - cospi(M[i,j]-M[i, periodic_index(j+1,L)]) - cospi(M[i,j]-M[i, periodic_index(j-1, L)]) - cospi(M[i,j]-M[periodic_index(i+1, L),j]) - cospi(M[i,j]-M[periodic_index(i-1, L),j])
-   M[i,j] += deltaTheta
-   return Etrial - E
+@fastmath function energy_single_flip(X, Y, i, j, L)#energy of configuration
+  E = 0.0
+  E -= X[i,j]*X[i, periodic_index(j+1,L)] + Y[i,j]*Y[i, periodic_index(j+1,L)]
+  E -= X[i,j]*X[i, periodic_index(j-1,L)] + Y[i,j]*Y[i, periodic_index(j-1,L)]
+  E -= X[i,j]*X[periodic_index(i+1,L), j] + Y[i,j]*Y[periodic_index(i+1,L), j]
+  E -= X[i,j]*X[periodic_index(i-1,L), j] + Y[i,j]*Y[periodic_index(i-1,L), j]
+  return E
 end
 
-  @fastmath function energy(M::Array{Float64,2}, L::Int64)::Float64 #energy of configuration
-   E = 0.0
-    @inbounds for j = 1:L, i = 1:L #Sum the energy of the four nearest-neighbour spins
-        E += - cospi(M[i,j]-M[i, periodic_index(j+1,L)]) - cospi(M[i,j]-M[i, periodic_index(j-1, L)]) - cospi(M[i,j]-M[periodic_index(i+1, L),j]) - cospi(M[i,j]-M[periodic_index(i-1, L),j])
-   end
-   return E/4.0
+ @fastmath function energy(X::Array{Float64,2}, Y::Array{Float64,2}, L::Int)::Float64 #energy of configuration
+  E = 0.0
+   @inbounds for j = 1:L, i = 1:L #Sum the energy of the four nearest-neighbour spins
+     E += energy_single_flip(X,Y,i,j,L)
+  end
+  return E/4.0
 end
 
   @fastmath function stiffness_x(M::Array{Float64,2}, T::Float64, L::Int64)::Float64 # in y-direction
@@ -48,21 +48,29 @@ end
    return stiffness *= 1./(L^2)
 end
 
- function mcstep!(config::Array{Float64,2}, T::Float64, L::Int64,
+ function mcstep!(config::Array{Float64,2},X, Y, T::Float64, L::Int64,
                   x::Int64, y::Int64, r::Float64, deltaTheta::Float64)#Monte Carlo step
-   config[x, y] += deltaTheta #randomly flip one spin
-   deltaE = energy_single_flip(config, deltaTheta, x, y, L) #compute energy of spin flip
+    E = energy_single_flip(X, Y, x, y, L) #compute energy of spin flip
+    dy = sinpi(config[3,3] + deltaTheta) - Y[3,3]
+    dx = cospi(config[3,3] + deltaTheta) - X[3,3]
+   X[x, y] += dx #randomly flip one spin
+   Y[x, y] += dy
+   Eflip = energy_single_flip(X, Y, x, y, L) #compute energy of spin flip
+   E = energy_single_flip(X, Y, x, y, L) #compute energy of spin flip
+   deltaE = Eflip - E
    if deltaE < 0.0 #accept new lower energy
       return nothing
    else
-     config[x, y] = mod2pi(config[x, y])
-     r > exp(-1.0/T*deltaE) ? config[x, y] -= deltaTheta : nothing
+     if r > exp(-1.0/T*deltaE) #
+       X[x, y] += dx
+       Y[x, y] += dy
+     end
    end
 end
 
- function mcsweep!(config::Array{Float64,2}, T::Float64, L::Int64, x::Array{Int64, 1}, y::Array{Int64, 1}, rs::Array{Float64, 1}, deltaTheta::Array{Float64, 1}) #Sweep over L^2 MC steps
+ function mcsweep!(M, X, Y, T::Float64, L::Int64, x::Array{Int64, 1}, y::Array{Int64, 1}, rs::Array{Float64, 1}, deltaTheta::Array{Float64, 1}) #Sweep over L^2 MC steps
    for i = 1:2*L^2
-       mcstep!(config, T, L, x[i], y[i], rs[i], deltaTheta[i])
+       mcstep!(M, X, Y, T, L, x[i], y[i], rs[i], deltaTheta[i])
    end
 end
 
@@ -71,13 +79,17 @@ end
    E, stiff  = zeros(N_steps), zeros(N_steps)
    x, y = rand(1:L, 2*L^2, N_steps+N_eq), rand(1:L, 2*L^2, N_steps+N_eq)
    rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 0.25*pi*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
+
+   X, Y = cospi(config), sinpi(config)
+
+
    @inbounds for i = 1:N_eq #Run a few times to equilibriate
-        mcsweep!(config, T, L, x[:,i], y[:,i], rs[:,i], deltaTheta[:,i])
+        mcsweep!(config, X, Y, T, L, x[:,i], y[:,i], rs[:,i], deltaTheta[:,i])
    end
    @inbounds for i = 1:N_steps #Runs which will be included in the thermodynamic averages
-       mcsweep!(config, T, L, x[:,N_eq+i], y[:,N_eq+i], rs[:,N_eq+i], deltaTheta[:,N_eq+i])
-       E[i] = energy(config, L)
-       stiff[i] = stiffness_x(config, T, L)
+       mcsweep!(config, X, Y, T, L, x[:,N_eq+i], y[:,N_eq+i], rs[:,N_eq+i], deltaTheta[:,N_eq+i])
+       E[i] = energy(X, Y, L)
+       #stiff[i] = stiffness_x(config, T, L)
    end
    E_avg = sum(E)/(N_steps*L^2) #average energy at T
    Cv = (dot(E,E)/N_steps - sum(E)^2/N_steps^2)/(T^2)
