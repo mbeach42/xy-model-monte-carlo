@@ -86,6 +86,10 @@ end
    rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 2.*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
 
    X, Y = cospi(config), sinpi(config)
+   
+   dx = cospi(config[x,y] + deltaTheta) - X[x,y]
+   dy = sinpi(config[x,y] + deltaTheta) - Y[x,y]
+
 
    @inbounds for i = 1:N_eq #Run a few times to equilibriate
         mcsweep!(config, X, Y, T, L, x[:,i], y[:,i], rs[:,i], deltaTheta[:,i])
