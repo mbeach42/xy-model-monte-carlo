@@ -1,40 +1,44 @@
 include("MetropolisXYModel.jl")
 include("MetropolisXYModelCartesian2.jl")
 
-L = 6
+L = 5
+T = 0.2
 a = 2*rand(L, L)
 x, y = cospi(a), sinpi(a)
 
-d = 1.76552
-
-dy = sinpi(a[3,3]+d) - y[3,3]
-dx = cospi(a[3,3]+d) - x[3,3]
-
-sinpi(d)
+d = rand()
 
 
+#E0 = MetropolisXYModel.energy_single_flip(a, d, 3,3, L)
+#Eflip = MetropolisXYModel.energy_single_flip(a, d, 3,3, L)
+
+#MetropolisXYModel.energy(a,L)
+#MetropolisXYModelCartesian2.energy(x,y,L)
+b = copy(a)
+
+
+sum(cospi(a) - x)
+sum(sinpi(a) - y)
+
+sum(a - b)
+
+MetropolisXYModel.mcstep!(a, T, L, 3, 4, 0.765, d)
+sum(cospi(a) - x)
+sum(cospi(a) - y)
+sum(a - b)
 
 
 
-a[3,3]
-a[3,3] += d
+MetropolisXYModelCartesian2.mcstep!(b, x, y, T, L, 3, 4, 0.765, d)
 
-x[3,3]
-x[3,3] += dx
 
-y[3,3]
-y[3,3] += dy
+println(sum(abs(cospi(a)-x) ))
+println(sum(abs(sinpi(a)-y) ))
 
-E0 = MetropolisXYModel.energy_single_flip(a, d, 3,3, L)
 
-Eflip = MetropolisXYModelCartesian.energy_single_flip(x, y, 3,3, L)
-x[3,3] -= dx
-y[3,3] -= dy
-Eflip = MetropolisXYModelCartesian.energy_single_flip(x, y, 3,3, L)
+println(MetropolisXYModel.energy(a, L) - MetropolisXYModelCartesian2.energy(x,y,L))
 
-Eflip - E
-E0
 
-#
-#
-####
+MetropolisXYModel.thermo_quantities(1.1,5, 100, 1000)
+
+MetropolisXYModelCartesian2.thermo_quantities(1.1,5, 100, 1000)

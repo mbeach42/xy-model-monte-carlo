@@ -53,11 +53,14 @@ end
    config[x, y] += deltaTheta #randomly flip one spin
    deltaE = energy_single_flip(config, deltaTheta, x, y, L) #compute energy of spin flip
    if deltaE < 0.0 #accept new lower energy
-      return nothing
+       #println("E<0")
+       nothing
+      #return nothing
    else
      config[x, y] = mod2pi(config[x, y])
      r > exp(-1.0/T*deltaE) ? config[x, y] -= deltaTheta : nothing
    end
+   #return deltaE, cospi(config), sinpi(config)
 end
 
  function mcsweep!(config::Array{Float64,2}, T::Float64, L::Int64, x::Array{Int64, 1}, y::Array{Int64, 1}, rs::Array{Float64, 1}, deltaTheta::Array{Float64, 1}) #Sweep over L^2 MC steps
@@ -67,18 +70,22 @@ end
 end
 
  function thermo_quantities(T::Float64, L::Int64, N_eq::Int64, N_steps::Int64)#::Tuple{Float64,Float64,Float64}
+
    config = random_config(L)
    E, stiff  = zeros(N_steps), zeros(N_steps)
    x, y = rand(1:L, 2*L^2, N_steps+N_eq), rand(1:L, 2*L^2, N_steps+N_eq)
    rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 0.25*pi*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
+
    @inbounds for i = 1:N_eq #Run a few times to equilibriate
         mcsweep!(config, T, L, x[:,i], y[:,i], rs[:,i], deltaTheta[:,i])
    end
+
    @inbounds for i = 1:N_steps #Runs which will be included in the thermodynamic averages
        mcsweep!(config, T, L, x[:,N_eq+i], y[:,N_eq+i], rs[:,N_eq+i], deltaTheta[:,N_eq+i])
        E[i] = energy(config, L)
        stiff[i] = stiffness_x(config, T, L)
    end
+
    E_avg = sum(E)/(N_steps*L^2) #average energy at T
    Cv = (dot(E,E)/N_steps - sum(E)^2/N_steps^2)/(T^2)
    Stiff = sum(stiff)/N_steps
@@ -87,12 +94,15 @@ end
 
 
  function iterate_over_temperatures(Ts::Array{Float64, 1}, L::Int64,
+
    N_eq::Int64, N_steps::Int64)::Tuple{Array{Float64,1},Array{Float64,1},Array{Float64,1}}
    F = length(Ts)
    E, Cv, Stiff = zeros(F), zeros(F), zeros(F) #SharedArray(Float64,F), SharedArray(Float64,F), SharedArray(Float64,F)
+
    @inbounds for j = 1:length(Ts)
        E[j], Cv[j], Stiff[j] = thermo_quantities(Ts[j], L, N_eq, N_steps)
    end
+
    return E, Cv, Stiff
 end
 
