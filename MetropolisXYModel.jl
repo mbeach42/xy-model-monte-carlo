@@ -52,10 +52,10 @@ end
                   x::Int64, y::Int64, r::Float64, deltaTheta::Float64)#Monte Carlo step
    config[x, y] += deltaTheta #randomly flip one spin
    deltaE = energy_single_flip(config, deltaTheta, x, y, L) #compute energy of spin flip
+
    if deltaE < 0.0 #accept new lower energy
        #println("E<0")
        nothing
-      #return nothing
    else
      config[x, y] = mod2pi(config[x, y])
      r > exp(-1.0/T*deltaE) ? config[x, y] -= deltaTheta : nothing
@@ -67,6 +67,7 @@ end
    for i = 1:2*L^2
        mcstep!(config, T, L, x[i], y[i], rs[i], deltaTheta[i])
    end
+   return config, cospi(config), sinpi(config), T, L, x[7],y[7],rs[7],deltaTheta[7]
 end
 
  function thermo_quantities(T::Float64, L::Int64, N_eq::Int64, N_steps::Int64)#::Tuple{Float64,Float64,Float64}
@@ -74,7 +75,7 @@ end
    config = random_config(L)
    E, stiff  = zeros(N_steps), zeros(N_steps)
    x, y = rand(1:L, 2*L^2, N_steps+N_eq), rand(1:L, 2*L^2, N_steps+N_eq)
-   rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 0.25*pi*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
+   rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 2*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
 
    @inbounds for i = 1:N_eq #Run a few times to equilibriate
         mcsweep!(config, T, L, x[:,i], y[:,i], rs[:,i], deltaTheta[:,i])

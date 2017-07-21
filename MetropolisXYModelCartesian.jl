@@ -1,5 +1,5 @@
 module MetropolisXYModelCartesian
-
+include("XYPlots.jl")
 export iterate_over_temperatures
 
 #using RandomNumbers.Xorshifts
@@ -58,32 +58,34 @@ function mcstep!(config::Array{Float64,2}, X::Array{Float64, 2}, Y::Array{Float6
     Eflip = energy_single_flip(X, Y, x, y, L) #compute energy of spin flip
 
     deltaE = Eflip - E
+
     if deltaE < 0.0 #accept new lower energy
         #println("E<0")
         nothing
     else
-      if r > exp(-1.0/T*deltaE) #
-         #println("r > exp()")
-        config[x,y] = deltaTheta
-        X[x, y] -= dx
-        Y[x, y] -= dy
-      end
+      r > exp(-1.0/T*deltaE) ? config[x, y] -= deltaTheta : nothing
+      r > exp(-1.0/T*deltaE) ? X[x, y] -= dx : nothing
+      r > exp(-1.0/T*deltaE) ? Y[x, y] -= dy : nothing
+      config[x, y] = mod2pi(config[x, y])
     end
-    #return deltaE, X, Y
+
 end
 
- function mcsweep!(M, X, Y, T::Float64, L::Int64, x::Array{Int64, 1}, y::Array{Int64, 1}, rs::Array{Float64, 1}, deltaTheta::Array{Float64, 1}) #Sweep over L^2 MC steps
-   for i = 1:2*L^2
-       mcstep!(M, X, Y, T, L, x[i], y[i], rs[i], deltaTheta[i])
-   end
+
+function mcsweep!(config::Array{Float64,2},X, Y,  T::Float64, L::Int64, x::Array{Int64, 1}, y::Array{Int64, 1}, rs::Array{Float64, 1}, deltaTheta::Array{Float64, 1}) #Sweep over L^2 MC steps
+  for i = 1:2*L^2
+      mcstep!(config, X, Y, T, L, x[i],y[i],rs[i],deltaTheta[i])
+  end
+  return config, X, Y, T, L, x[7],y[7],rs[7],deltaTheta[7]
 end
+
 
  function thermo_quantities(T::Float64, L::Int64, N_eq::Int64, N_steps::Int64)::Tuple{Float64,Float64,Float64}
 
    config = random_config(L)
    E, stiff  = zeros(N_steps), zeros(N_steps)
    x, y = rand(1:L, 2*L^2, N_steps+N_eq), rand(1:L, 2*L^2, N_steps+N_eq)
-   rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 2.*rand(2*L^2, N_steps+N_eq) + 2.0/pi*atan(T)
+   rs, deltaTheta = rand(2*L^2, N_steps+N_eq), 2*rand(2*L^2, N_steps+N_eq) #+ 2.0*atan(T)
 
    X, Y = cospi(config), sinpi(config)
 
@@ -100,6 +102,7 @@ end
    Cv = (dot(E,E)/N_steps - sum(E)^2/N_steps^2)/(T^2)
    Stiff = sum(stiff)/N_steps
    return E_avg, Cv, Stiff
+   #return XYPlots.arrowplot(config)
 end
 
 
