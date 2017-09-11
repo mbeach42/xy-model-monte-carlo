@@ -23,7 +23,7 @@
 # num_Ts = 30
 # clusters = 10
 # dir_name = "none"
-# E, M, Cv, X, Stiff = qModelMC.iterate_over_temperatures(T_low, T_high, num_Ts, L, q, N_eq, N, clusters, "wolff", dir_name);
+# E, M, Cv, X, Stiff = xyModelMC.iterate_over_temperatures(T_low, T_high, num_Ts, L, N_eq, N, clusters, "wolff", dir_name);
 # using PyPlot      # plot the results
 # xlabel("Temperature")
 # ylabel("Energy")
@@ -67,19 +67,38 @@ function spin_stiffness_y_direction(S::SpinArray, T::Float64)
 end
 
 function thermo_quantities(T, L, N_eq, N, clusters, algorithm)
-    S = SpinArray(L, rand(L, L)) 
+    
     nrg, mag, stiff, configs = zeros(N), zeros(N), zeros(N), Array{Float64}(N, L^2)
+
+    # S = SpinArray(L, rand(L, L)) 
     
-    for i = 1:N_eq  # Warm-up
-        algorithm == "metro" ? mcsweep!(S, T, clusters) : wolff!(S, T, clusters)
-    end
-    
-    for j = 1:N 
-        algorithm == "metro" ? mcsweep!(S, T, clusters) : wolff!(S, T, clusters)
-        configs[j,:] = reshape(S.config, L^2)
-        nrg[j] = energy(S)
-        mag[j] = magnetization(S)
-        stiff[j] = spin_stiffness_y_direction(S, T)
+    # for i = 1:N_eq  # Warm-up
+    #     algorithm == "metro" ? mcsweep!(S, T, clusters) : wolff!(S, T, clusters)
+    #         # mcsweep!(S, T, clusters)
+    # end
+        
+    # for j = 1:N
+    #     algorithm == "metro" ? mcsweep!(S, T, clusters) : wolff!(S, T, clusters)
+    #     # mcsweep!(S, T, clusters)
+    #     configs[j,:] = reshape(S.config, L^2)
+    #     nrg[j] = energy(S)
+    #     mag[j] = magnetization(S)
+    #     stiff[j] = spin_stiffness_y_direction(S, T)
+    # end
+
+    for seed = 1:10 # ten different seeds
+        S = SpinArray(L, rand(L, L)) 
+        for i = 1:N_eq  # Warm-up
+            wolff!(S, T, clusters)
+        end
+        for k = 1:div(N,10)  # real runs
+            j = k + (seed-1)*div(N,10)
+            wolff!(S, T, clusters)
+            configs[j,:] = reshape(S.config, L^2)
+            nrg[j] = energy(S)
+            mag[j] = magnetization(S)
+            stiff[j] = spin_stiffness_y_direction(S, T)
+        end
     end
     
     E = sum(nrg)/(N*L^2)          
@@ -102,9 +121,9 @@ function iterate_over_temperatures(T_low, T_high, num_Ts, L, N_eq, N, clusters, 
     
     if dir_name != "none"
         configs_array = copy(Configs)  # save configs to file
-        mkdir(dir_name) 
-        mkdir(dir_name*"/L=$L/") 
-        npzwrite(dir_name*"/L=$L/"".configs.npy", configs_array)
+        ispath(dir_name)==true ? nothing : mkdir(dir_name) 
+        ispath(dir_name*"/L=$L/")==true ? nothing : mkdir(dir_name*"/L=$L/") 
+        npzwrite(dir_name*"/L=$L/"*"configs.npy", configs_array)
         save_parameters(T_low, T_high, num_Ts, L, N_eq, N, clusters, algorithm, dir_name*"/L=$L/")
     end
 
@@ -185,9 +204,4 @@ function flipcluster!(S::SpinArray, cluster, v_vec, vectors)
 end
 
 end #end xyModelMC
-
-# compile the model once to test
-xyModelMC.iterate_over_temperatures(0.1, 3.0, 2, 2, 1, 2, 1, "wolff", "none");
-xyModelMC.iterate_over_temperatures(0.1, 3.0, 2, 2, 1, 2, 1, "metro", "none");
-
-    
+xyModelMC.iterate_over_temperatures(0.1, 2.0, 2, 8, 10, 100, 5, "wolff", "none")

@@ -1,0 +1,105 @@
+\documentclass[preprint,two column]{revtex4-1}
+\usepackage{tikz,pgfplots,pgfplotstable}
+
+\usetikzlibrary{intersections}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{colorbrewer}
+\usepgfplotslibrary{colorbrewer}
+
+\usetikzlibrary{intersections}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{colorbrewer}
+\usepgfplotslibrary{colorbrewer}
+
+\pgfplotstableset{
+    create on use/dataA/.style={create col/copy column from table={thermo/T_8.txt}{0}},
+    }
+
+ \pgfplotsset{
+    small,  
+    xlabel = $T$,
+    enlargelimits=false,
+    scale only axis,
+    axis on top = true,
+    clip marker paths=true,
+    legend style={font=\small},
+    xlabel near ticks,
+    ylabel near ticks,
+    width = 0.8\columnwidth,
+    height = 0.8*.608*\columnwidth,
+    }
+
+\begin{document}
+
+\title{XY model MC plots}
+
+\author{Matthew J. S. Beach}
+\email{jmschulz@uwaterloo.ca}
+\affiliation{Department of Physics and Astronomy, University of Waterloo, Waterloo N2L 3G1, Canada}
+\maketitle
+
+
+%% MAGNETIZATION
+\begin{figure}[h]
+\begin{tikzpicture}
+\begin{axis}[cycle list/Dark2-8,ylabel = $E$, mark=*]
+\foreach \L in {8,16,...,72}
+  {
+  \addplot +[x filter/.code=\pgfmathparse{\pgfmathresult}] table [x=dataA , y index=0] {thermo/E_\L.txt};
+  }
+% \legend{$L=8$, $L=16$, $L=24$, $L=32$,$L=40$ $L=64$, $L=88$}
+\end{axis}
+\end{tikzpicture}
+\end{figure}
+
+\begin{figure}[h]
+\begin{tikzpicture}
+\begin{axis}[cycle list/Dark2-8,ylabel = $M$, mark=*]
+\foreach \L in {8,16,...,72}
+  {
+  \addplot +[x filter/.code=\pgfmathparse{\pgfmathresult}] table [x=dataA , y index=0] {thermo/M_\L.txt};
+  }
+% \legend{$L=8$, $L=16$, $L=24$, $L=32$,$L=40$ $L=64$, $L=88$}
+\end{axis}
+\end{tikzpicture}
+\end{figure}
+
+\begin{figure}[h]
+\begin{tikzpicture}
+\begin{axis}[cycle list/Dark2-8,ylabel = $C_v$, mark=*]
+\foreach \L in {8,16,...,72}
+  {
+  \addplot +[x filter/.code=\pgfmathparse{\pgfmathresult}] table [x=dataA , y index=0] {thermo/Cv_\L.txt};
+  }
+% \legend{$L=8$, $L=16$, $L=24$, $L=32$,$L=40$ $L=64$, $L=88$}
+\end{axis}
+\end{tikzpicture}
+\end{figure}
+
+\begin{figure}[h]
+\begin{tikzpicture}
+\begin{axis}[cycle list/Dark2-8,ylabel = $\chi$, mark=*]
+\foreach \L in {8,16,...,72}
+  {
+  \addplot +[x filter/.code=\pgfmathparse{\pgfmathresult}] table [x=dataA , y index=0] {thermo/X_\L.txt};
+  }
+% \legend{$L=8$, $L=16$, $L=24$, $L=32$,$L=40$ $L=64$, $L=88$}
+\end{axis}
+\end{tikzpicture}
+\end{figure}
+
+\begin{figure}[h]
+\begin{tikzpicture}
+\begin{axis}[cycle list/Dark2-8,ylabel = Spin Stiffness, mark=*]
+\foreach \L in {8,16,...,72}
+  {
+  \addplot +[x filter/.code=\pgfmathparse{\pgfmathresult}] table [x=dataA , y index=0] {thermo/stiff_\L.txt};
+  }
+% \legend{$L=8$, $L=16$, $L=24$, $L=32$,$L=40$ $L=64$, $L=88$}
+\end{axis}
+\end{tikzpicture}
+\end{figure}
+
+
+
+\end{document} 
